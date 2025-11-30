@@ -146,6 +146,7 @@ Notes:
 ## Step 5: Testing & Verification  
 After setting up users and migration, I ran multiple checks to ensure the environment worked correctly:  
 Email Deliverability:  
+- Verified SPF/DKIM/DMARC using MXToolbox. (https://mxtoolbox.com/SuperTool.aspx#) Type your domain.  
 - Outbound: Emails sent successfully from all accounts.  
 - Inbound: Emails received correctly.  
 - Spam Issues: Some emails went to spam initially — this is expected for a brand-new domain. Reputation improves over 1–2 weeks of normal use.  
