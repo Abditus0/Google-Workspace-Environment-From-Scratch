@@ -1,7 +1,9 @@
 # Google Workspace Environment From Scratch (Domain, DNS, Security, Migration)  
+
 ## Author: Ivaylo Atanassov  
 
 ### Project Overview  
+
 I wanted to see if I could build a full Google Workspace environment from zero — starting with a brand-new domain, setting up DNS and security, adding users, and migrating a mailbox from Microsoft 365. No clients, no shortcuts — just a clean, fully functional Workspace setup that I could use as a portfolio project.
 This guide walks you through how I did it, the problems I ran into, and the practical tips I learned along the way. Think of it as a mix of a tutorial and a behind-the-scenes log of a real admin setup.  
 
@@ -13,6 +15,7 @@ This guide walks you through how I did it, the problems I ran into, and the prac
 - Understanding of DNS and email authentication  
 
 ### Best Practices  
+
 Before diving in, a few habits I stick to:  
 
 - Always backup DNS records before making changes  
@@ -21,6 +24,7 @@ Before diving in, a few habits I stick to:
 - Test everything in small steps before moving fully live  
 
 ### Step 1: Domain Registration  
+
 I started by registering a brand new domain: example-domain.space  
 What I did:  
 - Purchased and verified the domain in Porkbun.  
@@ -28,9 +32,11 @@ What I did:
 - Confirmed domain ownership in the Admin Console.  
 
 ### Step 2: DNS Configuration — Making Email Actually Work  
+
 Once the domain was verified, I moved on to setting up all the DNS records needed to make email reliable and secure. This step is crucial: if MX, SPF, DKIM, or DMARC aren’t correct, your emails might bounce, land in spam, or be spoofed by attackers. Here’s how I tackled it:  
 
 ### MX Records — The “Mail Delivery Map”  
+
 MX records tell the internet where emails for your domain should go. Without them, nobody can send you email.  
 
 | Priority | Server                  | What it does            |
@@ -45,48 +51,61 @@ Why multiple servers?
 Google recommends multiple MX servers so if one is unreachable, email still flows. Priority numbers control which server gets tried first.  
 
 ### SPF Record — Preventing Email Spoofing  
+
 v=spf1 include:_spf.google.com -all  
 SPF (Sender Policy Framework) is like a “mail passport”: it tells other mail servers which servers are allowed to send emails for your domain.  
 - include:_spf.google.com → Google is allowed to send emails for this domain  
-- -all → Anything else trying to send emails fails SPF checks  
+- -all → Anything else trying to send emails fails SPF checks
+
 Why it matters: Without SPF, spammers could send email pretending to be you. This is the first layer of email authentication.  
 
-### DKIM — Signing Your Emails  
+### DKIM — Signing Your Emails 
+
 DKIM (DomainKeys Identified Mail) adds a cryptographic signature to every outgoing email. It proves the email really came from your domain and hasn’t been tampered with.  
 
 - Google provides a DKIM key in the Admin Console  
 - I published it in DNS under google._domainkey.example-domain.space  
-- Activated DKIM signing for all users  
+- Activated DKIM signing for all users
+
 Result: Receiving mail servers can verify your emails, which helps prevent spoofing and increases deliverability.  
 
 ### DMARC — Telling the World How to Handle Your Email  
+
 v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@example-domain.space; ruf=mailto:dmarc-reports@example-domain.space; pct=100  
+
 DMARC ties SPF + DKIM together and tells other servers what to do if an email fails authentication:  
 
 - p=quarantine → suspicious emails go to spam  
 - rua/ruf → reports get sent to your monitoring mailbox  
-- pct=100 → applies to all emails  
+- pct=100 → applies to all emails
+
 Why it matters: DMARC protects your domain from being abused and gives you visibility into authentication failures.  
 
 ### TLS-RPT — Monitoring Encrypted Delivery  
+
 _smtp._tls: v=TLSRPTv1; rua=mailto:dmarc-reports@example-domain.space  
 
 TLS-RPT is optional but very useful. It tells you if other mail servers fail to deliver emails securely over TLS, so you can spot misconfigurations or delivery problems early.  
 
 ### DNS Backup — Safety First  
+
 Before making any changes, I exported the current DNS records and saved a backup. That way, if anything went wrong, I could restore the previous state.  
 
 Pro Tip: Always backup your DNS — small mistakes can break email for everyone.  
 This step is often overlooked, but it’s the foundation of reliable email. If MX/SPF/DKIM/DMARC isn’t correct, nothing else in Workspace will matter.  
 
 ### Step 3a: User Accounts & Security  
+
 After the domain and DNS were ready, I created the user accounts and set up the security baseline. This is where a Workspace environment starts feeling real.  
 Accounts Created:  
+
 - support@example-domain.space – for customer support or helpdesk  
 - info@example-domain.space – general inquiries  
 - sales@example-domain.space – sales communications  
-- monitoring@example-domain.space – for DMARC/TLS reports and system notifications  
+- monitoring@example-domain.space – for DMARC/TLS reports and system notifications
+
 Security Setup:  
+
 - 2FA Enforcement: Two-factor authentication protects every account from unauthorized access.  
 - Allowed Methods: Authenticator apps and security keys (SMS disabled for security).  
 - Android Management: Advanced management enabled. Requires work profile password and auto-wipes devices inactive for 30 days.  
@@ -96,6 +115,7 @@ Security Setup:
 Why this matters: Setting security before users start sending/receiving emails ensures accounts are protected from day one, and helps prevent common mistakes like weak passwords or insecure app access.  
 
 ### Step 3b: Groups & Aliases  
+
 After creating users, I decided to test Google Workspace Groups and email aliases to see how they behave and how they can simplify email routing.  
 What I did:  
 - Created a test Google Group  
