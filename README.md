@@ -39,13 +39,13 @@ Once the domain was verified, I moved on to setting up all the DNS records neede
 
 MX records tell the internet where emails for your domain should go. Without them, nobody can send you email.  
 
-| Priority | Server                  | What it does            |
-| -------- | ----------------------- | ----------------------- |
-| 1        | aspmx.l.google.com      | Main Google mail server |
-| 5        | alt1.aspmx.l.google.com | Backup server 1         |
-| 5        | alt2.aspmx.l.google.com | Backup server 2         |
-| 10       | alt3.aspmx.l.google.com | Backup server 3         |
-| 10       | alt4.aspmx.l.google.com | Backup server 4         |
+Type | Host |Priority | Value                   | What it does            |
+---- | ---- |-------- | ----------------------- | ----------------------- |
+MX   | @    | 1       | aspmx.l.google.com      | Main Google mail server |
+MX   | @    | 5       | alt1.aspmx.l.google.com | Backup server 1         |
+MX   | @    | 5       | alt2.aspmx.l.google.com | Backup server 2         |
+MX   | @    | 10      | alt3.aspmx.l.google.com | Backup server 3         |
+MX   | @    | 10      | alt4.aspmx.l.google.com | Backup server 4         |
 
 Why multiple servers?  
 Google recommends multiple MX servers so if one is unreachable, email still flows. Priority numbers control which server gets tried first.  
@@ -107,7 +107,7 @@ Accounts Created:
 Security Setup:  
 
 - 2FA Enforcement: Two-factor authentication protects every account from unauthorized access.  
-- Allowed Methods: Authenticator apps and security keys (SMS disabled for security).  
+- Allowed Methods: Authenticator apps and security keys (SMS disabled because SMS-based 2FA is vulnerable to SIM swapping attacks).   
 - Android Management: Advanced management enabled. Requires work profile password and auto-wipes devices inactive for 30 days.  
 - iOS Management: Apple Push Certificate configured. This allows devices to enroll later — no devices were enrolled yet.  
 - OAuth App Controls: Limited third-party app access to only basic info; users can request approval for additional apps.  
