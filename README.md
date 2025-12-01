@@ -106,7 +106,11 @@ Accounts Created:
 
 Security Setup:  
 
-- 2FA Enforcement: Two-factor authentication protects every account from unauthorized access.  
+- 2FA Enforcement: Two-factor authentication protects every account from unauthorized access.
+
+<img width="928" height="664" alt="Screenshot 2025-11-30 135526" src="https://github.com/user-attachments/assets/81038c2d-2d18-4430-ba92-8f34aa5f5b2f" />  
+
+
 - Allowed Methods: Authenticator apps and security keys (SMS disabled because SMS-based 2FA is vulnerable to SIM swapping attacks).   
 - Android Management: Advanced management enabled. Requires work profile password and auto-wipes devices inactive for 30 days.  
 - iOS Management: Apple Push Certificate configured. This allows devices to enroll later — no devices were enrolled yet.  
@@ -138,7 +142,11 @@ Process:
 - Connect your Microsoft 365 Account  
 - Selected the source mailbox (admin@old-domain.com) and destination mailbox (admin@example-domain.space).  
 - Migrated emails, contacts, and calendar events.  
-- Verified migration by logging into the Workspace admin account and checking for all emails and events.  
+- Verified migration by logging into the Workspace admin account and checking for all emails and events.
+
+<img width="1290" height="711" alt="Screenshot 2025-11-30 140146" src="https://github.com/user-attachments/assets/893b4da3-3437-487f-aa03-6a69e28c3500" />  
+
+
 Notes:  
 - Some emails initially landed in spam — this is normal for brand-new domains without established sending reputation.  
 - Migrating the admin mailbox first allowed me to confirm that core functionality worked before creating or migrating additional users.  
