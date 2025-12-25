@@ -1,7 +1,5 @@
 # Google Workspace Environment From Scratch (Domain, DNS, Security, Migration)  
 
-## Author: Ivaylo Atanassov  
-
 ## Project Overview  
 
 I wanted to see if I could build a full Google Workspace environment from zero — starting with a brand-new domain, setting up DNS and security, adding users, and migrating a mailbox from Microsoft 365. No clients, no shortcuts — just a clean, fully functional Workspace setup that I could use as a portfolio project.
