@@ -53,8 +53,8 @@ Google recommends multiple MX servers so if one is unreachable, email still flow
 
 `v=spf1 include:_spf.google.com -all`  
 SPF (Sender Policy Framework) is like a “mail passport”: it tells other mail servers which servers are allowed to send emails for your domain.  
-- include:_spf.google.com → Google is allowed to send emails for this domain  
-- -all → Anything else trying to send emails fails SPF checks
+- `include:_spf.google.com` → Google is allowed to send emails for this domain  
+- `-all` → Anything else trying to send emails fails SPF checks
 
 It's important because without SPF, spammers could send email pretending to be you. This is the first layer of email authentication.  
 
