@@ -51,7 +51,7 @@ Google recommends multiple MX servers so if one is unreachable, email still flow
 
 ## SPF Record (Preventing Email Spoofing)  
 
-v=spf1 include:_spf.google.com -all  
+`v=spf1 include:_spf.google.com -all`  
 SPF (Sender Policy Framework) is like a “mail passport”: it tells other mail servers which servers are allowed to send emails for your domain.  
 - include:_spf.google.com → Google is allowed to send emails for this domain  
 - -all → Anything else trying to send emails fails SPF checks
@@ -63,26 +63,26 @@ It's important because without SPF, spammers could send email pretending to be y
 DKIM (DomainKeys Identified Mail) adds a cryptographic signature to every outgoing email. It proves the email really came from your domain and hasn’t been changed.  
 
 - Google provides a DKIM key in the Admin Console  
-- I published it in DNS under google._domainkey.example-domain.space  
+- I published it in DNS under `google._domainkey.example-domain.space`  
 - Activated DKIM signing for all users
 
 That helps receiving mail servers can check that your emails are legit, which helps stop spoofing and makes sure your emails actually get delivered. 
 
 ## DMARC (Telling the World How to Handle Your Email)  
 
-v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@example-domain.space; ruf=mailto:dmarc-reports@example-domain.space; pct=100  
+`v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@example-domain.space; ruf=mailto:dmarc-reports@example-domain.space; pct=100`  
 
 DMARC ties SPF + DKIM together and tells other servers what to do if an email fails authentication:  
 
-- p=quarantine → suspicious emails go to spam  
-- rua/ruf → reports get sent to your monitoring mailbox  
-- pct=100 → applies to all emails
+- `p=quarantine` → suspicious emails go to spam  
+- `rua/ruf` → reports get sent to your monitoring mailbox  
+- `pct=100` → applies to all emails
 
 Important because DMARC protects your domain from being abused and gives you visibility into authentication failures.  
 
 ## TLS-RPT (Monitoring Encrypted Delivery)  
 
-_smtp._tls: v=TLSRPTv1; rua=mailto:dmarc-reports@example-domain.space  
+`_smtp._tls: v=TLSRPTv1; rua=mailto:dmarc-reports@example-domain.space`  
 
 TLS-RPT is optional but very useful. It tells you if other mail servers fail to deliver emails securely over TLS, so you can spot misconfigurations or delivery problems early.  
 
