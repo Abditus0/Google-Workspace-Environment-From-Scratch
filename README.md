@@ -2,8 +2,9 @@
 
 ## Project Overview  
 
-I wanted to see if I could build a full Google Workspace environment from zero — starting with a brand-new domain, setting up DNS and security, adding users, and migrating a mailbox from Microsoft 365. No clients, no shortcuts — just a clean, fully functional Workspace setup that I could use as a portfolio project.
-This guide walks you through how I did it, the problems I ran into, and the practical tips I learned along the way. Think of it as a mix of a tutorial and a behind-the-scenes log of a real admin setup.  
+I wanted to see if I could build a full Google Workspace setup from scratch, starting with a brand-new domain, setting up DNS and security, adding users, and moving a mailbox from Microsoft 365. No clients, no shortcuts, just a clean, fully working Workspace setup that I could use as a portfolio project.
+
+In this guide, I’ll walk through how I did everything, the problems I ran into, and the useful things I learned along the way. It’s basically a mix of a tutorial and a behind-the-scenes look at a real admin setup.  
 
 ## Requirements  
 
