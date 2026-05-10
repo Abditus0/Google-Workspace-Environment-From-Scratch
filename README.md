@@ -1,195 +1,139 @@
-# Google Workspace Environment From Scratch (Domain, DNS, Security, Migration)  
+# Google Workspace Environment From Scratch
 
-## Project Overview  
+A Google Workspace setup from a blank domain to a fully working email environment. New domain, DNS locked down, users created, security enforced, and a mailbox migrated over from Microsoft 365.
 
-I wanted to see if I could build a full Google Workspace setup from scratch, starting with a brand-new domain, setting up DNS and security, adding users, and moving a mailbox from Microsoft 365. No clients, no shortcuts, just a clean, fully working Workspace setup that I could use as a portfolio project.
+I wanted to see if I could build the whole thing end to end without skipping any of the parts that usually get glossed over. Most guides stop at "verify your domain and add users". The interesting work is everything around it. SPF, DKIM, DMARC, TLS-RPT, 2FA policies, device management, OAuth controls, mailbox migration. That's where this project lives.
 
-In this guide, I’ll walk through how I did everything, the problems I ran into, and the useful things I learned along the way. It’s basically a mix of a tutorial and a behind-the-scenes look at a real admin setup.  
+## What I built
 
-## Requirements  
+A new domain bought from Porkbun, verified in Google, with full DNS authentication set up. MX records pointing to all five Google mail servers. SPF locking down who can send as the domain. DKIM signing every outgoing email. DMARC tying it together with a quarantine policy. TLS-RPT for delivery failure notifications. A dedicated mailbox just for the reports.
 
-- Google Workspace account (I used the free trial)  
-- Access to a domain registrar (I used Porkbun)  
-- Admin access to a Microsoft 365 mailbox for migration  
-- Understanding of DNS and email authentication  
+Four user accounts created with 2FA enforced and SMS turned off. Android management with auto-wipe rules. iOS push certificate configured. OAuth locked down so users can't connect random third-party apps.
 
-## Best Practices  
+Then a real mailbox migration from Microsoft 365 to prove the whole thing works end to end. Emails, contacts, calendar events, all moved over.
 
-Before getting into it, here are a few habits I always stick to:
+## The domain
 
-- I always back up DNS records before making any changes  
-- I double-check SPF, DKIM, and DMARC entries. Even a small typo can break email delivery  
-- I keep a separate mailbox just for DMARC and TLS reports  
-- I test everything step by step before going fully live   
+Bought `example-domain.space` from Porkbun. Added the Google Workspace TXT record to DNS, verified ownership in the Admin Console. Standard stuff, no surprises here.
 
-## Step 1: Domain Registration  
+Before touching anything else I exported the current DNS records and saved a backup. Small DNS mistakes can break email for everyone, and you really don't want to be staring at a broken zone with no record of what it used to look like.
 
-I started by registering a brand new domain: example-domain.space  
-What I did:  
-- Purchased and verified the domain in Porkbun.  
-- Added the Google Workspace TXT verification record.  
-- Confirmed domain ownership in the Admin Console.  
+## DNS and email authentication
 
-## Step 2: DNS Configuration (Making Email Actually Work)  
+This is the part that actually matters. If MX, SPF, DKIM, or DMARC aren't right, email either doesn't deliver, lands in spam, or gets spoofed by anyone who feels like it.
 
-Once the domain was verified, I moved on to setting up all the DNS records to make email actually work and stay secure. This part is super important because if MX, SPF, DKIM, or DMARC aren’t set up right, emails can bounce, end up in spam, or even get spoofed. Here’s how I handled it:  
+### MX records
 
-## MX Records (The “Mail Delivery Map”)  
+| Type | Host | Priority | Value | Role |
+|------|------|----------|-------|------|
+| MX | @ | 1 | aspmx.l.google.com | Primary |
+| MX | @ | 5 | alt1.aspmx.l.google.com | Backup 1 |
+| MX | @ | 5 | alt2.aspmx.l.google.com | Backup 2 |
+| MX | @ | 10 | alt3.aspmx.l.google.com | Backup 3 |
+| MX | @ | 10 | alt4.aspmx.l.google.com | Backup 4 |
 
-MX records tell the internet where emails for your domain should go. Without them, nobody can send you email.  
+Five servers because if the primary is unreachable for any reason, mail still flows. Lower priority number gets tried first.
 
-Type | Host |Priority | Value                   | What it does            |
----- | ---- |-------- | ----------------------- | ----------------------- |
-MX   | @    | 1       | aspmx.l.google.com      | Main Google mail server |
-MX   | @    | 5       | alt1.aspmx.l.google.com | Backup server 1         |
-MX   | @    | 5       | alt2.aspmx.l.google.com | Backup server 2         |
-MX   | @    | 10      | alt3.aspmx.l.google.com | Backup server 3         |
-MX   | @    | 10      | alt4.aspmx.l.google.com | Backup server 4         |
+### SPF
 
-Why multiple servers?  
-Google recommends multiple MX servers so if one is unreachable, email still flows. Priority numbers control which server gets tried first.  
+```
+v=spf1 include:_spf.google.com -all
+```
 
-## SPF Record (Preventing Email Spoofing)  
+Says only Google is allowed to send mail for this domain. The `-all` at the end is the important part. It means anything else trying to send as the domain hard fails. Without SPF, anyone on the internet can send email pretending to be you and there's nothing to stop it.
 
-`v=spf1 include:_spf.google.com -all`  
-SPF (Sender Policy Framework) is like a “mail passport”: it tells other mail servers which servers are allowed to send emails for your domain.  
-- `include:_spf.google.com` → Google is allowed to send emails for this domain  
-- `-all` → Anything else trying to send emails fails SPF checks
+### DKIM
 
-It's important because without SPF, spammers could send email pretending to be you. This is the first layer of email authentication.  
+Google generates the DKIM key in the Admin Console. I published it under `google._domainkey.example-domain.space` and turned on signing for all users. Every outgoing email now gets a cryptographic signature that the receiving server can verify. If the signature doesn't match, the email gets flagged.
 
-## DKIM (Signing Your Emails) 
+### DMARC
 
-DKIM (DomainKeys Identified Mail) adds a cryptographic signature to every outgoing email. It proves the email really came from your domain and hasn’t been changed.  
+```
+v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@example-domain.space; ruf=mailto:dmarc-reports@example-domain.space; pct=100
+```
 
-- Google provides a DKIM key in the Admin Console  
-- I published it in DNS under `google._domainkey.example-domain.space`  
-- Activated DKIM signing for all users
+DMARC ties SPF and DKIM together and tells receiving servers what to do when an email fails authentication. `p=quarantine` sends suspicious mail to spam. `pct=100` applies the policy to every single message. The `rua` and `ruf` addresses are where authentication reports get sent, which is why I made the dedicated monitoring mailbox.
 
-That helps receiving mail servers can check that your emails are legit, which helps stop spoofing and makes sure your emails actually get delivered. 
+### TLS-RPT
 
-## DMARC (Telling the World How to Handle Your Email)  
+```
+_smtp._tls: v=TLSRPTv1; rua=mailto:dmarc-reports@example-domain.space
+```
 
-`v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@example-domain.space; ruf=mailto:dmarc-reports@example-domain.space; pct=100`  
+Optional but worth setting up. It tells you if other servers fail to deliver mail to you over TLS. If something is wrong with encrypted delivery, you find out from the reports instead of from a user complaining their email never arrived.
 
-DMARC ties SPF + DKIM together and tells other servers what to do if an email fails authentication:  
+## Users and security
 
-- `p=quarantine` → suspicious emails go to spam  
-- `rua/ruf` → reports get sent to your monitoring mailbox  
-- `pct=100` → applies to all emails
+Four accounts created:
 
-Important because DMARC protects your domain from being abused and gives you visibility into authentication failures.  
+- `support@example-domain.space` for helpdesk
+- `info@example-domain.space` for general inquiries
+- `sales@example-domain.space` for sales
+- `monitoring@example-domain.space` for the DMARC and TLS reports
 
-## TLS-RPT (Monitoring Encrypted Delivery)  
+Security got locked down before anyone touched a mailbox.
 
-`_smtp._tls: v=TLSRPTv1; rua=mailto:dmarc-reports@example-domain.space`  
+**2FA enforced for everyone.** Authenticator apps and security keys only. SMS turned off because SIM swap attacks are real and SMS-based 2FA is one of the weakest forms of MFA you can use. If someone's phone number gets ported by an attacker, SMS 2FA might as well not exist.
 
-TLS-RPT is optional but very useful. It tells you if other mail servers fail to deliver emails securely over TLS, so you can spot misconfigurations or delivery problems early.  
+<img width="928" height="664" alt="2FA enforcement settings" src="https://github.com/user-attachments/assets/d05bb0d2-7395-4893-ab1e-888a3f70c85b" />
 
-## DNS Backup (Safety First)  
+**Android management on advanced.** Work profile password required, devices auto-wipe if inactive for 30 days. A lost phone with cached email and Drive access is a problem. A lost phone that wipes itself isn't.
 
-Before making any changes, I exported the current DNS records and saved a backup. That way, if anything went wrong, I could restore the previous state.  
+**iOS Apple Push Certificate configured.** No devices enrolled yet but the certificate is in place so mobile management can be turned on without redoing setup.
 
-Always backup your DNS. Small mistakes can break email for everyone.  
-This step is often overlooked, but it’s the foundation of reliable email. If MX/SPF/DKIM/DMARC isn’t correct, nothing else in Workspace will matter.  
+**OAuth app access restricted.** Users can't connect random third-party apps to their Workspace account. They can request access if they need something specific. This stops the classic "I clicked allow on a sketchy app and now it has my entire mailbox" problem.
 
-## Step 3a: User Accounts & Security  
+## Groups and aliases
 
-Once the domain and DNS were set up, I created the user accounts and put in the basic security settings. This is the point where a Workspace environment starts to feel real.  
-Accounts Created:  
+I also tested groups and aliases to see how the routing actually behaves.
 
-- support@example-domain.space – for customer support or helpdesk  
-- info@example-domain.space – general inquiries  
-- sales@example-domain.space – sales communications  
-- monitoring@example-domain.space – for DMARC/TLS reports and system notifications
+Created a Google Group at `team@example-domain.space`, added a couple of users, sent a test email. Everyone got it. Changed the access settings so external senders weren't blocked. Aliases on the admin account pointed extra addresses (`admin1@`, `admin2@`) at the main inbox.
 
-Security Setup:  
+Nothing groundbreaking, but knowing how groups and aliases route mail matters once you have more than four users to manage.
 
-- 2FA Enforcement: Two-factor authentication protects every account from unauthorized access.
+## Mailbox migration from Microsoft 365
 
-  <img width="928" height="664" alt="520867655-81038c2d-2d18-4430-ba92-8f34aa5f5b2f" src="https://github.com/user-attachments/assets/d05bb0d2-7395-4893-ab1e-888a3f70c85b" />
+I migrated the admin mailbox from Microsoft 365 using the Google Workspace Data Migration Tool.
 
+Steps were straightforward. Open Data Migration in the Admin Console, connect the Microsoft 365 account, pick the source mailbox (`admin@old-domain.com`), pick the destination (`admin@example-domain.space`), kick off the migration. Emails, contacts, and calendar events all came over.
 
+<img width="1290" height="711" alt="Microsoft 365 to Google Workspace migration" src="https://github.com/user-attachments/assets/f5849350-e02a-4145-b83d-bfb841d38a88" />
 
-- Allowed Methods: Authenticator apps and security keys (SMS disabled because SMS-based 2FA is vulnerable to SIM swapping attacks).   
-- Android Management: Advanced management enabled. Requires work profile password and auto-wipes devices inactive for 30 days.  
-- iOS Management: Apple Push Certificate configured. This allows devices to enroll later. No devices were enrolled yet.  
-- OAuth App Controls: Limited third-party app access to only basic info; users can request approval for additional apps.  
+I migrated the admin account first on purpose. If something is going to break, it'll break here, and I'd rather find out before doing it for actual users.
 
-Setting up security before users start sending or receiving emails makes sure their accounts are protected from day one. It also helps avoid common mistakes like weak passwords or letting insecure apps connect.  
+## Testing and verification
 
-## Step 3b: Groups & Aliases  
+Once everything was in place I went through a full test pass.
 
-After creating users, I decided to test Google Workspace Groups and email aliases to see how they behave and how they can simplify email routing.  
-What I did:  
-- Created a test Google Group  
-  - Example: team@example-domain.space  
-  - Added a couple of users to the group.  
-  - Change the default Access Settings   
-  - Tested sending an email to the group. All members received it.  
-- Added aliases to the main admin account  
-  - Example aliases: admin1@example-domain.space, admin2@example-domain.space  
-  - Emails sent to either alias landed in the main admin inbox.  
- 
-Groups are useful for distribution lists, team collaboration, and testing email routing without creating extra accounts.  
-Aliases allow multiple email addresses to be routed to a single mailbox, reducing the number of actual accounts you need while keeping addresses flexible.  
-Even though this was just for testing, knowing how to configure groups and aliases is important for managing a larger Workspace setup in the future.  
+- MXToolbox to verify SPF, DKIM, and DMARC were all passing
+- Sent test mail out from every account, confirmed delivery
+- Sent mail in from external addresses, confirmed delivery
+- Logged into every account via web and mobile
+- Checked the monitoring mailbox for DMARC reports coming back
 
-## Step 4: Migration from Microsoft 365  
-I migrated one admin mailbox from Microsoft 365 using Google Workspace Data Migration Tool. Here’s how:       
-- Log in to Google Workspace and search for Data Migration  
-- Connect your Microsoft 365 Account  
-- Selected the source mailbox (admin@old-domain.com) and destination mailbox (admin@example-domain.space).  
-- Migrated emails, contacts, and calendar events.  
-- Verified migration by logging into the Workspace admin account and checking for all emails and events.
+All four accounts working. Admin mailbox fully migrated. Authentication passing across the board.
 
+## Problems I had to solve
 
-  <img width="1290" height="711" alt="520867988-893b4da3-3437-487f-aa03-6a69e28c3500" src="https://github.com/user-attachments/assets/f5849350-e02a-4145-b83d-bfb841d38a88" />
+**Some emails landing in spam.** Brand-new domains have no sending reputation, so even with perfect DNS the first wave of emails can get filtered. This isn't something you fix with config. It resolves on its own over a week or two of normal sending. Worth knowing in advance so you don't go chasing a problem that isn't really there.
 
+**One user couldn't log in after 2FA enforcement.** Something went sideways during initial setup. I temporarily disabled 2FA enforcement just for that account, got the login working, then re-enabled it. The takeaway is to make sure every user can actually log in once before flipping enforcement on for the whole org. Otherwise you end up locking people out before they've ever used the account.
 
+**iOS device management partial.** Apple Push Certificate is configured but no devices are enrolled yet. The certificate has to be in place before any iOS device can be managed, so getting it set up now means the option is there when it's needed. Without it, the first device enrollment becomes a much bigger task.
 
-Notes:  
-- Some emails initially landed in spam. This is normal for brand-new domains without established sending reputation.  
-- Migrating the admin mailbox first allowed me to confirm that core functionality worked before creating or migrating additional users.  
+## What I learned
 
-## Step 5: Testing & Verification  
-After setting up users and migration, I ran multiple checks to ensure the environment worked correctly:  
-- Verified SPF/DKIM/DMARC using MXToolbox. (https://mxtoolbox.com/SuperTool.aspx#) Type your domain.  
-- Outbound: Emails sent successfully from all accounts.  
-- Inbound: Emails received correctly.  
-- Spam Issues: Some emails went to spam initially. This is expected for a brand-new domain. Reputation improves over 1–2 weeks of normal use.  
-- All four accounts logged in successfully via web and mobile.  
-- Admin mailbox fully migrated.  
-- Even if DNS and migration are technically complete, testing ensures users can actually send and receive emails, and that security/authentication policies are working as intended.  
+The thing that stuck with me most is how much of email security lives in DNS. SPF, DKIM, DMARC, TLS-RPT. None of it is in the Workspace admin panel, and getting any of it slightly wrong silently breaks delivery or leaves the domain wide open to spoofing. Most people set up MX records and call it done. That's the bare minimum.
 
-## Step 6: Known Issues  
-Even in a controlled project, a few minor hiccups happened:  
-- Spam filtering for new domain: Temporary. Brand-new domains have no sending history, so emails can land in spam. It resolves naturally as the domain builds reputation.  
-- 2FA Temporary Disable: One user had login issues, so I temporarily disabled 2FA enforcement. Re-enabled once all accounts were working.  
-- iOS Enrollment: Only the Apple Push Certificate was configured; no devices were enrolled. This allows mobile management in the future.  
+Other practical things that came out of this:
 
-## Step 7: Next Steps  
-Even though the setup works, here’s what I would do next if this were a real client deployment:  
-First Week:  
-- Users log in and set up 2FA.  
-- Admin reviews the security dashboard.  
-- Test sending/receiving emails with common external contacts.  
-- Check the monitoring@example-domain.space mailbox for DMARC and TLS reports.  
-First Month:  
-- Enroll mobile devices using Google Device Policy app.  
-- Configure email signatures for all users.  
-- Create Google Groups or Shared Drives if needed.  
-- Continue checking deliverability and authentication reports.  
+- DMARC reports are genuinely useful once you actually read them. You can see who is trying to send as your domain.
+- SMS 2FA is so weak that turning it off was an obvious call, but a lot of organizations still leave it on by default.
+- The Google Data Migration Tool just works. I went in expecting issues and didn't really hit any.
+- The first week of a new domain is rough on deliverability and there's not much you can do about it.
 
-## What I Learned  
-Doing this project helped me get better at:  
+## Why I built it
 
-- Google Workspace Administration: From domain verification to user creation.  
-- DNS & Email Authentication: MX, SPF, DKIM, DMARC, TLS-RPT. Everything required for secure mail.  
-- Microsoft 365 → Workspace Migration: Using Google Workspace Migration Tool without issues for mailbox migration.  
-- Security & Policy Enforcement: 2FA, device management, OAuth app controls.  
-- Troubleshooting & Testing: Deliverability issues, fixing user login problems, verifying authentication.  
- 
+I wanted to know what setting up a Workspace environment actually involves end to end. Not the "click verify domain and add users" version, the real one with DNS authentication, security policies, device management, and an actual mailbox migration on top.
 
-## License  
-This project documentation is released under the MIT License. feel free to use, modify, and share for educational purposes.  
+Now I've done it once, on my own domain, with no client breathing down my neck. If I have to do it again for a real organization, I already know where the gotchas are and what the setup actually takes.
