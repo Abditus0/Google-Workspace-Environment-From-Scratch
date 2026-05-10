@@ -20,7 +20,7 @@ Before touching anything else I exported the current DNS records and saved a bac
 
 ## DNS and email authentication
 
-This is the part that actually matters. If MX, SPF, DKIM, or DMARC aren't right, email either doesn't deliver, lands in spam, or gets spoofed by anyone who feels like it.
+If MX, SPF, DKIM, or DMARC aren't right, email either doesn't deliver, lands in spam, or gets spoofed by anyone who feels like it.
 
 ### MX records
 
