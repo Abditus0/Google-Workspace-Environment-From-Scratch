@@ -127,13 +127,11 @@ The thing that stuck with me most is how much of email security lives in DNS. SP
 
 Other practical things that came out of this:
 
-- DMARC reports are genuinely useful once you actually read them. You can see who is trying to send as your domain.
+- DMARC reports are genuinely useful once you read them. You can see who is trying to send as your domain.
 - SMS 2FA is so weak that turning it off was an obvious call, but a lot of organizations still leave it on by default.
-- The Google Data Migration Tool just works. I went in expecting issues and didn't really hit any.
+- The Google Data Migration Tool just works really well. I went in expecting issues and didn't really hit any.
 - The first week of a new domain is rough on deliverability and there's not much you can do about it.
 
 ## Why I built it
 
-I wanted to know what setting up a Workspace environment actually involves end to end. Not the "click verify domain and add users" version, the real one with DNS authentication, security policies, device management, and an actual mailbox migration on top.
-
-Now I've done it once, on my own domain, with no client breathing down my neck. If I have to do it again for a real organization, I already know where the gotchas are and what the setup actually takes.
+I wanted to know what setting up a Workspace environment actually involves end to end. Not the "click verify domain and add users" version, the real one with DNS authentication, security policies, device management, and an mailbox migration on top.
